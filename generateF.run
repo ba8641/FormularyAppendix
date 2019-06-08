@@ -1,0 +1,79 @@
+reset;
+
+param Source symbolic;
+param n_entities;
+param n_markets  >=0;
+param uncertainty_low;
+param uncertainty_high;
+param interest_rate;
+param annual_births{1..194};
+param Countries{1..2, 1..194};
+
+let Source:= "/shared/kgcoe-research/gates/Bruno/ABP_ME_Formularies/Source/";
+
+model (Source &"ABP_base.mod");
+model (Source &"ABP_L_H.mod");
+model (Source &"ABP_ME.mod");
+model (Source &"ABP_Distribution.mod");
+model (Source &"ABP_L_problem_def.mod");
+model "generator.mod";
+
+data "/shared/kgcoe-research/gates/Bruno/ABP_ME_Formularies/DataIn/Test_m1_ul1.0_uh1.1_i1.1_-1-1_e1.dat";
+data "formularies.dat";
+
+for {curF in j..2000}{
+
+	reset data;
+	
+	let j:= curF;
+	
+	let alpha:=1;
+
+	data "/shared/kgcoe-research/gates/Bruno/ABP_ME_Formularies/DataIn/Test_m1_ul1.0_uh1.1_i1.1_-1-1_e1.dat";
+
+	data "formularies.dat";
+
+	solve Form;
+	
+	if solve_result_num <> 0 then {
+		for {ta in TA}{
+			if ta < 6 then {
+				print "set TA := ", ta+1, ";" > "formularies.dat";
+				print "set MAN := ", {man in MAN} man, ";" >> "formularies.dat";
+			}
+			else{
+				for {man in MAN}{
+					print "set TA := ", 1, ";" > "formularies.dat";
+					print "set MAN := ", man+1, ";" >> "formularies.dat";
+				};
+			};
+		};
+		
+		print "param f:  1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 :=" >> "formularies.dat"; 
+	
+
+		for {ind in 1..j}{
+			print ind, {b in B} f[ind,b] >> "formularies.dat";
+		};
+		print ";" >> "formularies.dat";
+		print "param j:= ",j,";" >> "formularies.dat";
+		close "formularies.dat";
+		#break;
+	}else{
+
+		print "set TA := ", {ta in TA} ta, ";" > "formularies.dat";
+		print "set MAN := ", {man in MAN} man, ";" >> "formularies.dat";
+		
+		print "param f:  1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 :=" >> "formularies.dat"; 
+		
+	
+		for {ind in 1..j}{
+			print ind, {b in B} f[ind,b] >> "formularies.dat";
+		};
+		print (j+1), {b in B} formul[b], ";" >> "formularies.dat";
+		print "param j:= ",j+1,";" >> "formularies.dat";
+		close "formularies.dat";
+	};
+	
+	
+};
