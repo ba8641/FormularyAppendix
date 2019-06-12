@@ -21,7 +21,7 @@ model "generator.mod";
 data "/shared/kgcoe-research/gates/Bruno/ABP_ME_Formularies/DataIn/Test_m1_ul1.0_uh1.1_i1.1_-1-1_e1.dat";
 data "formularies.dat";
 
-for {curF in j..2000}{
+for {curF in j..2}{
 
 	reset data;
 	
@@ -35,7 +35,8 @@ for {curF in j..2000}{
 
 	solve Form;
 	
-	if solve_result_num <> 0 then {
+	
+	if solve_result == "infeasible" then {
 		for {ta in TA}{
 			if ta < 6 then {
 				print "set TA := ", ta+1, ";" > "formularies.dat";
@@ -53,14 +54,13 @@ for {curF in j..2000}{
 	
 
 		for {ind in 1..j}{
-			print ind, {b in B} f[ind,b] >> "formularies.dat";
+			print ind, {b in B, do in DOSE} f[ind,b,do] >> "formularies.dat";
 		};
 		print ";" >> "formularies.dat";
 		print "param j:= ",j,";" >> "formularies.dat";
 		close "formularies.dat";
 		#break;
 	}else{
-
 		print "set TA := ", {ta in TA} ta, ";" > "formularies.dat";
 		print "set MAN := ", {man in MAN} man, ";" >> "formularies.dat";
 		
@@ -68,12 +68,23 @@ for {curF in j..2000}{
 		
 	
 		for {ind in 1..j}{
-			print ind, {b in B} f[ind,b] >> "formularies.dat";
+			print ind, {b in B, do in DOSE} f[ind,b, do] >> "formularies.dat";
 		};
-		print (j+1), {b in B} formul[b], ";" >> "formularies.dat";
+		print (j+1), {b in B, do in DOSE} formul[b, do], ";" >> "formularies.dat";
 		print "param j:= ",j+1,";" >> "formularies.dat";
 		close "formularies.dat";
 	};
 	
 	
 };
+
+reset data;
+data "/shared/kgcoe-research/gates/Bruno/ABP_ME_Formularies/DataIn/Test_m1_ul1.0_uh1.1_i1.1_-1-1_e1.dat";
+data "formularies.dat";
+
+#set M_DROP:= 2..194;
+
+#let {curF in FORM} CF[curF]:= sum{b in B: f[curF,b] > 0}C[b];
+let {curF in FORM, m in M} RF[curF,m] := sum{b in B}R[b,m]*f[curF,b];
+
+solve TSSFORM;
