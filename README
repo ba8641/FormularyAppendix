@@ -1,0 +1,5 @@
+This folder contains the input data for our experiments in the folder Input.
+The folder Source contains the mathematical formulations in AMPL for solving the models proposed in the paper.
+The ABP_LF.run and ABP_FL_ME.run files are the script files used to run our experiments, with support files ExpFileDetailsTestFL.txt and EntFileDetailsTestFL.txt.
+The file analysis.csv summarizes the resulting experiments with the metrics described in the paper.
+Also contained in this folder are the figures resulting of solving the models with high and low prices.
