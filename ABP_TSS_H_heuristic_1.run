@@ -1,0 +1,155 @@
+
+/*
+ 	ABP_HEURISTIC (script file) to be used as via 'command' or 'include
+	as part of any other script
+	######################################################################################        
+	# (4 FILES) MUST BE DECLARED BEFORE USING THIS FILE:                                 #
+	# ABP_base.mod, ABP_L_H.mod, ABP_L_problem_def.mod, and a DATA FILE                  #
+	######################################################################################
+
+	by Ruben A. Proano
+	rpmeie@rit.edu
+	ROCHESTER INSTITUTE OF TECHNOLOGY
+	
+	NOTE:
+	# 1- This script provides a flexible implementation of the ABP_heuristic for its two stages.
+	     It first uses ABPTSS_LH_com to solve iteratively the ABP for a group of combination vaccines in 
+	     each iteration. Second it uses ABPTSS_LH_mono to solve iteratively the ABP for a group of monovalent 
+	     vaccines in each iteration. 
+
+	2- loo and hii define the range of vaccines in the Bsort set that will be used in each iterations. They are equal
+       in order to implement current heuristic
+	    
+	3- After each iteration, any modified allocation and vaccine to produced is fixed. 
+	
+	4- After each iteration any vaccine used in the iteration is updated in the tabu set (LL)
+
+	
+	02.21.2017
+	version I.01
+
+	See additional comments at the end of the file
+*/
+
+let {b in B} bfit[b]:= sum{m in M}R[b,m]*D[b,m]/log(C[b]);
+
+let numiterations:= card(Bsort); #change the RHS to any number of iterations 
+
+display Bsort;
+
+display "Running ABP_Heuristic_";
+let LL:={};
+let {a in A, m in M}  dH[a,m]:= d[a,m]*l[m];
+let {b in B, m in M} Xo[b,m]:=0;
+let {b in B} go[b]:=0;
+
+
+display "solving combination vaccines first - Stage 1";
+
+display {a in A, m in M} dH[a,m];
+
+for{j in 1..card(Bsort):card(A1[member(j,Bsort)])>1}  
+{
+	
+	let loo:= j;  
+	let hii:= j; 
+
+    /*
+	display loo,hii;
+	display member(j,Bsort);
+	display card(A1[member(j,Bsort)]);
+	display name[member(j,Bsort)];
+	*/
+	
+	solve ABPTSS_LH_com;
+	
+	/*
+	display{b in setof{z in loo..hii}member(z,Bsort), m in M}X[b,m];
+	display {b in setof{z in loo..hii}member(z,Bsort)} (sum{m in M}X[b,m] - S[b]*g[b]); 
+	*/
+	
+	let {b in B: g[b]>0}go[b]:=g[b];
+	let {b in B, m in M: X[b,m]>0} Xo[b,m]:=X[b,m];
+	let {b in setof{z in loo..hii} member(z, Bsort), m in M, a in A1[b]: X[b,m]>0 and b not in LL}dH[a,m]:=dH[a,m]-X[b,m];
+	let {b in setof{z in loo..hii} member(z, Bsort), m in M, a in A1[b]: dH[a,m]<0}dH[a,m]:=0;
+	let LL:= LL union setof{z in loo..hii} member(z, Bsort);
+	
+	# display {a in A, m in M} dH[a,m];
+
+}
+
+for{j in 1..card(Bsort):card(A1[member(j,Bsort)])=1}  
+{
+	
+	let loo:= j;
+	let hii:= j; 
+
+	/*
+	display loo,hii;
+	display member(j,Bsort);
+	display card(A1[member(j,Bsort)]);
+	*/
+	
+	solve ABPTSS_LH_mono;
+	
+	/*
+	display{b in setof{z in loo..hii}member(z,Bsort), m in M}X[b,m];
+	display {b in setof{z in loo..hii}member(z,Bsort)} (sum{m in M}X[b,m] - S[b]*g[b]); 
+	*/
+	
+	let {b in B: g[b]>0}go[b]:=g[b];
+	let {b in B, m in M: X[b,m]>0} Xo[b,m]:=X[b,m];
+	let {b in setof{z in loo..hii} member(z, Bsort), m in M, a in A1[b]: X[b,m]>0 and b not in LL}dH[a,m]:=dH[a,m]-X[b,m];
+	let {b in setof{z in loo..hii} member(z, Bsort), m in M, a in A1[b]: dH[a,m]<0}dH[a,m]:=0;
+	let LL:= LL union setof{z in loo..hii} member(z, Bsort);
+    #display {a in A, m in M} dH[a,m];
+}
+    display "solve Lin";
+    # solve ABPTSS_Lin;    you can uncomment this line to use the heuristic as a starting point of ABPTSS_Lin
+    
+	let {a in A, m in M}  dH[a,m]:= d[a,m]*l[m];
+	let LL:={};
+
+
+/*
+Old heuristic Feb 20.2017
+
+for{j in 1..numiterations}  #card(A1[member(j,Bsort)])>1
+{
+	
+	let loo:= (j-1)*floor(card(BsortMono)/numiterations)+1; 
+	let hii:= min(j*max(floor(card(BsortMono)/numiterations),1), card(BsortMono));
+#	if j= numiterations and card(BsortMono)-card(LL)+ card(BsortCom)>0 then let hii:=card(BsortMono);
+	display loo,hii;
+	
+	solve ABPTSS_LH_mono;
+	
+	let {b in B: g[b]>0}go[b]:=g[b];
+	let {b in B, m in M: X[b,m]>0} Xo[b,m]:=X[b,m];
+	let {b in setof{z in loo..hii} member(z, Bsort), m in M, a in A1[b]: X[b,m]>0 and b not in LL}dH[a,m]:=dH[a,m]-X[b,m];
+	let LL:= LL union setof{z in loo..hii} member(z, Bsort);
+
+}
+
+display "solving monovalent vaccines second - Stage 2";
+
+for{j in 1..numiterations: card(A1[member(j,Bsort)])=1}
+{
+	
+	let loo:= (j-1)*floor(card(Bsort)/numiterations)+1; 
+	let hii:= min(j*max(floor(card(Bsort)/numiterations),1), card(Bsort));
+	 
+	
+	solve ABPTSS_LH_mono;
+	
+
+	let {b in B: g[b]>0}go[b]:=g[b];
+	let {b in B, m in M: X[b,m]>0} Xo[b,m]:=X[b,m];
+	let {b in setof{z in loo..hii} member(z, Bsort), m in M, a in A1[b]: X[b,m]>0 and b not in LL}dH[a,m]:=dH[a,m]-X[b,m];
+	let LL:= LL union setof{z in loo..hii} member(z, Bsort);
+
+}
+*/
+
+
+
